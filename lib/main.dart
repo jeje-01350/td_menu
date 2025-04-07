@@ -32,6 +32,13 @@ class MenuScreen extends StatefulWidget {
 class _MenuScreenState extends State<MenuScreen> {
   String selectedCategory = "Entrées";
   final List<String> categories = ["Entrées", "Plats", "Desserts"];
+  final PageController _pageController = PageController();
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,45 +49,74 @@ class _MenuScreenState extends State<MenuScreen> {
       ),
       body: Column(
         children: [
-          // Barre de catégories défilante horizontalement
+          // Indicateurs de catégories
           Container(
-            height: 50,
+            height: 60,
             margin: const EdgeInsets.symmetric(vertical: 8),
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: categories.length,
               itemBuilder: (context, index) {
                 final category = categories[index];
                 final isSelected = category == selectedCategory;
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: ChoiceChip(
-                    label: Text(category),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      if (selected) {
-                        setState(() {
-                          selectedCategory = category;
-                        });
-                      }
+                return Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  child: InkWell(
+                    onTap: () {
+                      _pageController.animateToPage(
+                        index,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
                     },
-                    selectedColor: Theme.of(context).primaryColor,
-                    labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : Colors.black,
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: isSelected ? Theme.of(context).primaryColor : Colors.grey[200],
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: isSelected ? [
+                          BoxShadow(
+                            color: Theme.of(context).primaryColor.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          )
+                        ] : null,
+                      ),
+                      child: Text(
+                        category,
+                        style: TextStyle(
+                          color: isSelected ? Colors.white : Colors.black87,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          fontSize: 16,
+                        ),
+                      ),
                     ),
                   ),
                 );
               },
             ),
           ),
-          // Liste des plats de la catégorie sélectionnée
+          // Liste des plats avec défilement horizontal
           Expanded(
-            child: ListView.builder(
-              itemCount: menu.where((plat) => plat.categorie == selectedCategory).length,
-              itemBuilder: (context, index) {
-                final plats = menu.where((plat) => plat.categorie == selectedCategory).toList();
-                return PlatCard(plat: plats[index]);
+            child: PageView(
+              controller: _pageController,
+              onPageChanged: (index) {
+                setState(() {
+                  selectedCategory = categories[index];
+                });
               },
+              children: categories.map((category) {
+                return ListView.builder(
+                  itemCount: menu.where((plat) => plat.categorie == category).length,
+                  itemBuilder: (context, index) {
+                    final plats = menu.where((plat) => plat.categorie == category).toList();
+                    return PlatCard(plat: plats[index]);
+                  },
+                );
+              }).toList(),
             ),
           ),
         ],
